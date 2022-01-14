@@ -448,6 +448,27 @@ func (s *WidgetService) Create(ctx context.Context, subreddit string, request Wi
 	return root.Data, resp, nil
 }
 
+// Update a widget for the subreddit.
+func (s *WidgetService) Update(ctx context.Context, subreddit string, id string, request WidgetCreateRequest) (Widget, *Response, error) {
+	if request == nil {
+		return nil, nil, errors.New("WidgetUpdateRequest: cannot be nil")
+	}
+
+	path := fmt.Sprintf("r/%s/api/widget", subreddit)
+	req, err := s.client.NewJSONRequest(http.MethodPut, path, request)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	root := new(rootWidget)
+	resp, err := s.client.Do(ctx, req, root)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return root.Data, resp, nil
+}
+
 // Delete a widget via its id.
 func (s *WidgetService) Delete(ctx context.Context, subreddit, id string) (*Response, error) {
 	path := fmt.Sprintf("r/%s/api/widget/%s", subreddit, id)
