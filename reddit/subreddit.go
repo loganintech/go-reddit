@@ -190,6 +190,7 @@ type SubredditSettings struct {
 	// Allow image uploads and links to image hosting sites.
 	AllowImages                *bool `url:"allow_images,omitempty" json:"allow_images,omitempty"`
 	AllowMultipleImagesPerPost *bool `url:"allow_galleries,omitempty" json:"allow_galleries,omitempty"`
+	AllowVideoPosts            *bool `url:"allow_videos,omitempty" json:"allow_videos,omitempty"`
 
 	ExcludeSitewideBannedUsersContent *bool `url:"exclude_banned_modqueue,omitempty" json:"exclude_banned_modqueue,omitempty"`
 
