@@ -531,6 +531,11 @@ type Post struct {
 	Title string `json:"title,omitempty"`
 	Body  string `json:"selftext,omitempty"`
 
+	LinkFlairText      string `json:"link_flair_text,omitempty"`
+	LinkFlairCSSClass  string `json:"link_flair_css_class,omitempty"`
+	LinkFlairTextColor string `json:"link_flair_text_color,omitempty"`
+	LinkFlairType      string `json:"link_flair_type,omitempty"`
+
 	// Indicates if you've upvoted/downvoted (true/false).
 	// If neither, it will be nil.
 	Likes *bool `json:"likes"`
