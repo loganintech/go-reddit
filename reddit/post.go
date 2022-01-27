@@ -64,9 +64,10 @@ type SubmitLinkRequest struct {
 
 // SubmitCrosspostRequest are options used for link posts.
 type SubmitCrosspostRequest struct {
-	Subreddit string `url:"sr,omitempty"`
-	Title     string `url:"title,omitempty"`
-	URL       string `url:"url,omitempty"`
+	Subreddit         string `url:"sr,omitempty"`
+	Title             string `url:"title,omitempty"`
+	CrosspostFullname string `url:"crosspost_fullname,omitempty"`
+	URL               string `url:"url,omitempty"`
 
 	FlairID   string `url:"flair_id,omitempty"`
 	FlairText string `url:"flair_text,omitempty"`
@@ -169,7 +170,8 @@ func (s *PostService) SubmitLink(ctx context.Context, opts SubmitLinkRequest) (*
 }
 
 // SubmitCrosspost submits a link post.
-func (s *PostService) SubmitCrosspost(ctx context.Context, opts SubmitCrosspostRequest) (*Submitted, *Response, error) {
+func (s *PostService) SubmitCrosspost(ctx context.Context, post *Post, opts SubmitCrosspostRequest) (*Submitted, *Response, error) {
+	opts.CrosspostFullname = post.FullID
 	form := struct {
 		SubmitCrosspostRequest
 		Kind string `url:"kind,omitempty"`
