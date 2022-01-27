@@ -62,6 +62,21 @@ type SubmitLinkRequest struct {
 	Spoiler     bool  `url:"spoiler,omitempty"`
 }
 
+// SubmitCrosspostRequest are options used for link posts.
+type SubmitCrosspostRequest struct {
+	Subreddit string `url:"sr,omitempty"`
+	Title     string `url:"title,omitempty"`
+	URL       string `url:"url,omitempty"`
+
+	FlairID   string `url:"flair_id,omitempty"`
+	FlairText string `url:"flair_text,omitempty"`
+
+	SendReplies *bool `url:"sendreplies,omitempty"`
+	Resubmit    bool  `url:"resubmit,omitempty"`
+	NSFW        bool  `url:"nsfw,omitempty"`
+	Spoiler     bool  `url:"spoiler,omitempty"`
+}
+
 // Get a post with its comments.
 // id is the ID36 of the post, not its full id.
 // Example: instead of t3_abc123, use abc123.
@@ -150,6 +165,15 @@ func (s *PostService) SubmitLink(ctx context.Context, opts SubmitLinkRequest) (*
 		SubmitLinkRequest
 		Kind string `url:"kind,omitempty"`
 	}{opts, "link"}
+	return s.submit(ctx, form)
+}
+
+// SubmitCrosspost submits a link post.
+func (s *PostService) SubmitCrosspost(ctx context.Context, opts SubmitCrosspostRequest) (*Submitted, *Response, error) {
+	form := struct {
+		SubmitCrosspostRequest
+		Kind string `url:"kind,omitempty"`
+	}{opts, "crosspost"}
 	return s.submit(ctx, form)
 }
 
