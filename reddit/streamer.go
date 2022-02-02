@@ -37,8 +37,3 @@ func StreamMaxRequests(v int) StreamOpt {
 		}
 	}
 }
-
-// Streamer streams data to the client.
-// type Streamer interface {
-// 	Stream() (<-chan *rootListing, <-chan error, func())
-// }
