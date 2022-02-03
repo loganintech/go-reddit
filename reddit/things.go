@@ -562,7 +562,8 @@ type Post struct {
 	Stickied   bool `json:"stickied"`
 
 	// Moderation
-	NumReports int `json:"num_reports"`
+	NumReports    int  `json:"num_reports"`
+	IgnoreReports bool `json:"ignore_reports"`
 }
 
 // Subreddit holds information about a subreddit
