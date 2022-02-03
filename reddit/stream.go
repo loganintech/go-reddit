@@ -2,6 +2,7 @@ package reddit
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 )
@@ -332,7 +333,7 @@ func (s *StreamService) Reported(subreddit string, opts ...StreamOpt) (<-chan *P
 			}
 
 			for _, post := range posts {
-				id := post.ID
+				id := fmt.Sprintf("%s%d", post.ID, post.NumReports)
 
 				// if this comment id is already part of the set, it means that it and the ones
 				// after it in the list have already been streamed, so break out of the loop
@@ -356,7 +357,7 @@ func (s *StreamService) Reported(subreddit string, opts ...StreamOpt) (<-chan *P
 			}
 
 			for _, comment := range comments {
-				id := comment.ID
+				id := fmt.Sprintf("%s%d", comment.ID, comment.NumReports)
 
 				// if this comment id is already part of the set, it means that it and the ones
 				// after it in the list have already been streamed, so break out of the loop
