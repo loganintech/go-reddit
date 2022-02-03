@@ -280,3 +280,115 @@ func (s *StreamService) getInboxUnread() ([]*Message, error) {
 	comments, directMessages, _, err := s.client.Message.InboxUnread(context.Background(), &ListOptions{Limit: itemLimit})
 	return append(comments, directMessages...), err
 }
+
+// TODO: Generalize these two functions to have the same body... Maybe when generics is released ;)
+// InboxUnread returns 3 channels, one for comments, DMs, and errors, in that order, plus a function to close the channel
+func (s *StreamService) Reported(subreddit string, opts ...StreamOpt) (<-chan *Post, <-chan *Comment, <-chan error, func()) {
+	streamConfig := &streamConfig{
+		Interval:       defaultStreamInterval,
+		DiscardInitial: false,
+		MaxRequests:    0,
+	}
+	for _, opt := range opts {
+		opt(streamConfig)
+	}
+
+	ticker := time.NewTicker(streamConfig.Interval)
+	postsCh := make(chan *Post)
+	commentsCh := make(chan *Comment)
+	errsCh := make(chan error)
+
+	var once sync.Once
+	stop := func() {
+		once.Do(func() {
+			ticker.Stop()
+			close(postsCh)
+			close(commentsCh)
+			close(errsCh)
+		})
+	}
+
+	// originally used the "before" parameter, but if that post gets deleted, subsequent requests
+	// would just return empty listings; easier to just keep track of all post ids encountered
+	oldIDs := set{}
+	newIDs := set{}
+
+	go func() {
+		defer stop()
+
+		var n int
+		infinite := streamConfig.MaxRequests == 0
+
+		for ; ; <-ticker.C {
+			n++
+
+			posts, comments, err := s.getReported(subreddit)
+			if err != nil {
+				errsCh <- err
+				if !infinite && n >= streamConfig.MaxRequests {
+					break
+				}
+				continue
+			}
+
+			for _, post := range posts {
+				id := post.ID
+
+				// if this comment id is already part of the set, it means that it and the ones
+				// after it in the list have already been streamed, so break out of the loop
+				if newIDs.Exists(id) || oldIDs.Exists(id) {
+					break
+				}
+				newIDs.Add(id)
+
+				// If the new map is 10 times larger than item limit, make it the old map and clear it
+				if len(newIDs) >= itemLimit*10 {
+					oldIDs = newIDs
+					newIDs = make(map[string]struct{})
+				}
+
+				if streamConfig.DiscardInitial {
+					streamConfig.DiscardInitial = false
+					break
+				}
+
+				postsCh <- post
+			}
+
+			for _, comment := range comments {
+				id := comment.ID
+
+				// if this comment id is already part of the set, it means that it and the ones
+				// after it in the list have already been streamed, so break out of the loop
+				if newIDs.Exists(id) || oldIDs.Exists(id) {
+					break
+				}
+				newIDs.Add(id)
+
+				// If the new map is 10 times larger than item limit, make it the old map and clear it
+				if len(newIDs) >= itemLimit*10 {
+					oldIDs = newIDs
+					newIDs = make(map[string]struct{})
+				}
+
+				if streamConfig.DiscardInitial {
+					streamConfig.DiscardInitial = false
+					break
+				}
+
+				commentsCh <- comment
+			}
+
+			if !infinite && n >= streamConfig.MaxRequests {
+				break
+			}
+		}
+	}()
+
+	return postsCh, commentsCh, errsCh, stop
+}
+
+func (s *StreamService) getReported(subreddit string) ([]*Post, []*Comment, error) {
+	post, comment, _, err := s.client.Moderation.Reported(context.Background(), subreddit, &ListOptions{Limit: itemLimit})
+	return post, comment, err
+}

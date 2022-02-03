@@ -558,6 +558,9 @@ type Post struct {
 	IsSelfPost bool `json:"is_self"`
 	Saved      bool `json:"saved"`
 	Stickied   bool `json:"stickied"`
+
+	// Moderation
+	NumReports int `json:"num_reports"`
 }
 
 // Subreddit holds information about a subreddit
