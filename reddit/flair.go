@@ -22,9 +22,11 @@ type FlairService struct {
 
 // Flair is a tag that can be attached to a user or a post.
 type Flair struct {
-	ID   string `json:"id,omitempty"`
-	Type string `json:"type,omitempty"`
-	Text string `json:"text,omitempty"`
+	ID               string `json:"id,omitempty"`
+	Type             string `json:"type,omitempty"`
+	Text             string `json:"text,omitempty"`
+	MaxEmojis        int    `json:"max_emojis,omitempty"`
+	AllowableContent string `json:"allowable_content,omitempty"`
 
 	Color           string `json:"text_color,omitempty"`
 	BackgroundColor string `json:"background_color,omitempty"`
