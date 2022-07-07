@@ -97,7 +97,7 @@ type BanConfig struct {
 	Days *int `url:"duration,omitempty"`
 	// Note to include in the ban message to the user.
 	Message string `url:"ban_message,omitempty"`
-	// URL to give as reference
+	// [fullname](https://www.reddit.com/dev/api/#fullnames) of thing to provide as reference
 	UrlContext string `url:"ban_context,omitempty"`
 }
 
