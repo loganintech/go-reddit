@@ -1,6 +1,6 @@
 module github.com/loganintech/go-reddit/v2
 
-go 1.17
+go 1.18
 
 require (
 	github.com/google/go-querystring v1.0.0
