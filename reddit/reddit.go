@@ -95,6 +95,7 @@ type Client struct {
 	User       *UserService
 	Widget     *WidgetService
 	Wiki       *WikiService
+	Modnotes   *ModnoteService
 
 	oauth2Transport *oauth2.Transport
 
@@ -127,6 +128,7 @@ func newClient() *Client {
 	client.User = &UserService{client: client}
 	client.Widget = &WidgetService{client: client}
 	client.Wiki = &WikiService{client: client}
+	client.Modnotes = &ModnoteService{client: client}
 
 	postAndCommentService := &postAndCommentService{client: client}
 	client.Comment = &CommentService{client: client, postAndCommentService: postAndCommentService}
@@ -491,8 +493,8 @@ type Rate struct {
 
 // A lot of Reddit's responses return a "thing": { "kind": "...", "data": {...} }
 // So this is just a nice convenient method to have.
-func (c *Client) getThing(ctx context.Context, path string, opts interface{}) (*thing, *Response, error) {
-	path, err := addOptions(path, opts)
+func (c *Client) getThing(ctx context.Context, path string, pathOpts interface{}) (*thing, *Response, error) {
+	path, err := addOptions(path, pathOpts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -509,6 +511,25 @@ func (c *Client) getThing(ctx context.Context, path string, opts interface{}) (*
 	}
 
 	return t, resp, nil
+}
+
+func (c *Client) doReqWithOptions(ctx context.Context, method string, path string, pathOpts interface{}, v interface{}) (*Response, error) {
+	path, err := addOptions(path, pathOpts)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := c.NewRequest(method, path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.Do(ctx, req, v)
+	if err != nil {
+		return resp, err
+	}
+
+	return resp, nil
 }
 
 func (c *Client) getListing(ctx context.Context, path string, opts interface{}) (*listing, *Response, error) {

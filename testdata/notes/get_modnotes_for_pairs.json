@@ -1,0 +1,27 @@
+{
+  "mod_notes": [
+    null,
+    {
+      "subreddit_id": "t5_5hdn3v",
+      "operator_id": "t2_gbc4d",
+      "mod_action_data": {
+        "action": null,
+        "reddit_id": "t3_13zrc8i",
+        "details": null,
+        "description": null
+      },
+      "subreddit": "notamod",
+      "user": "JewsOfHazard",
+      "operator": "JewsOfHazard",
+      "id": "ModNote_e184ebe5-e149-457d-b383-47aa6133ded9",
+      "user_note_data": {
+        "note": "another",
+        "reddit_id": "t3_13zrc8i",
+        "label": "HELPFUL_USER"
+      },
+      "user_id": "t2_gbc4d",
+      "created_at": 1706602167,
+      "type": "NOTE"
+    }
+  ]
+}

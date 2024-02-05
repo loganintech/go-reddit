@@ -1,0 +1,24 @@
+{
+  "created": {
+    "subreddit_id": "t5_5hdn3v",
+    "operator_id": "t2_zui7d",
+    "mod_action_data": {
+      "action": null,
+      "reddit_id": "t3_sdruyc",
+      "details": null,
+      "description": null
+    },
+    "subreddit": "notamod",
+    "user": "not_a_mod_here",
+    "operator": "not_a_mod_here",
+    "id": "ModNote_2ffbe2a7-1be5-4dcc-a386-bcc9ade7a9fc",
+    "user_note_data": {
+      "note": "Cool dudez",
+      "reddit_id": "t3_sdruyc",
+      "label": "SOLID_CONTRIBUTOR"
+    },
+    "user_id": "t2_zui7d",
+    "created_at": 1707087323,
+    "type": "NOTE"
+  }
+}
