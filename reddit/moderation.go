@@ -25,6 +25,9 @@ type ModAction struct {
 	Action  string     `json:"action,omitempty"`
 	Created *Timestamp `json:"created_utc,omitempty"`
 
+	// Some extra details. For bans it might be "permanent" or "changed to 3 days"
+	Details string `json:"details,omitempty"`
+
 	Moderator string `json:"mod,omitempty"`
 	// Not the full ID, just the ID36.
 	ModeratorID string `json:"mod_id36,omitempty"`
