@@ -565,6 +565,47 @@ type Post struct {
 	// Moderation
 	NumReports    int  `json:"num_reports"`
 	IgnoreReports bool `json:"ignore_reports"`
+
+	// Content
+	IsVideo         bool      `json:"is_video"`
+	Thumbnail       string    `json:"thumbnail"`
+	ThumbnailWidth  int       `json:"thumbnail_width"`
+	ThumbnailHeight int       `json:"thumbnail_height"`
+	Media           PostMedia `json:"media"`
+	PostHint        string    `json:"post_hint"`
+}
+
+type PostMedia struct {
+	RedditVideo struct {
+		BitrateKbps       int    `json:"bitrate_kbps"`
+		FallbackUrl       string `json:"fallback_url"`
+		HasAudio          bool   `json:"has_audio"`
+		Height            int    `json:"height"`
+		Width             int    `json:"width"`
+		ScrubberMediaUrl  string `json:"scrubber_media_url"`
+		DashUrl           string `json:"dash_url"`
+		Duration          int    `json:"duration"`
+		HlsUrl            string `json:"hls_url"`
+		IsGif             bool   `json:"is_gif"`
+		TranscodingStatus string `json:"transcoding_status"`
+	} `json:"reddit_video"`
+
+	Type   string `json:"type"`
+	Oembed struct {
+		ProviderUrl     string `json:"provider_url"`
+		Version         string `json:"version"`
+		Title           string `json:"title"`
+		Type            string `json:"type"`
+		ThumbnailWidth  int    `json:"thumbnail_width"`
+		Height          int    `json:"height"`
+		Width           int    `json:"width"`
+		Html            string `json:"html"`
+		AuthorName      string `json:"author_name"`
+		ProviderName    string `json:"provider_name"`
+		ThumbnailUrl    string `json:"thumbnail_url"`
+		ThumbnailHeight int    `json:"thumbnail_height"`
+		AuthorUrl       string `json:"author_url"`
+	} `json:"oembed"`
 }
 
 // Subreddit holds information about a subreddit
