@@ -605,6 +605,7 @@ type PostMedia struct {
 		ThumbnailUrl    string `json:"thumbnail_url"`
 		ThumbnailHeight int    `json:"thumbnail_height"`
 		AuthorUrl       string `json:"author_url"`
+		Url             string `json:"url"`
 	} `json:"oembed"`
 }
 
