@@ -361,6 +361,23 @@ func (s *SubredditService) TopPosts(ctx context.Context, subreddit string, opts 
 	return s.getPosts(ctx, "top", subreddit, opts)
 }
 
+// NewPosts returns the newest posts from the specified subreddit.
+// To search through multiple, separate the names with a plus (+), e.g. "golang+test".
+// If none are defined, it returns the ones from your subscribed subreddits.
+// To search through all, just specify "all".
+// To search through all and filter out subreddits, provide "all-name1-name2".
+func (s *SubredditService) NewComments(ctx context.Context, subreddit string, opts *ListOptions) ([]*Comment, *Response, error) {
+	path := "comments"
+	if subreddit != "" {
+		path = fmt.Sprintf("r/%s/comments", subreddit)
+	}
+	l, resp, err := s.client.getListing(ctx, path, opts)
+	if err != nil {
+		return nil, resp, err
+	}
+	return l.Comments(), resp, nil
+}
+
 // Get a subreddit by name.
 func (s *SubredditService) Get(ctx context.Context, name string) (*Subreddit, *Response, error) {
 	if name == "" {

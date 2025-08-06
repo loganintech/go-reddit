@@ -45,6 +45,10 @@ type ModAction struct {
 	SubredditID string `json:"sr_id36,omitempty"`
 }
 
+func (p *ModAction) GetID() string {
+	return p.ID
+}
+
 // ModPermissions are the different permissions moderators have or don't have on a subreddit.
 // Read about them here: https://mods.reddithelp.com/hc/en-us/articles/360009381491-User-Management-moderators-and-permissions
 type ModPermissions struct {

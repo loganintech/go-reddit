@@ -399,11 +399,12 @@ type Comment struct {
 	ParentID  string `json:"parent_id,omitempty"`
 	Permalink string `json:"permalink,omitempty"`
 
-	Body            string `json:"body,omitempty"`
-	Author          string `json:"author,omitempty"`
-	AuthorID        string `json:"author_fullname,omitempty"`
-	AuthorFlairText string `json:"author_flair_text,omitempty"`
-	AuthorFlairID   string `json:"author_flair_template_id,omitempty"`
+	Body                string `json:"body,omitempty"`
+	Author              string `json:"author,omitempty"`
+	AuthorID            string `json:"author_fullname,omitempty"`
+	AuthorFlairText     string `json:"author_flair_text,omitempty"`
+	AuthorFlairID       string `json:"author_flair_template_id,omitempty"`
+	AuthorFlairCssClass string `json:"author_flair_css_class,omitempty"`
 
 	SubredditName         string `json:"subreddit,omitempty"`
 	SubredditNamePrefixed string `json:"subreddit_name_prefixed,omitempty"`
@@ -437,6 +438,10 @@ type Comment struct {
 	Replies Replies `json:"replies"`
 
 	NumReports int `json:"num_reports"`
+}
+
+func (p *Comment) GetID() string {
+	return p.ID
 }
 
 // HasMore determines whether the comment has more replies to load in its reply tree.
@@ -575,6 +580,10 @@ type Post struct {
 	PostHint        string    `json:"post_hint"`
 }
 
+func (p *Post) GetID() string {
+	return p.ID
+}
+
 type PostMedia struct {
 	RedditVideo struct {
 		BitrateKbps       int    `json:"bitrate_kbps"`
@@ -629,6 +638,10 @@ type Subreddit struct {
 	UserIsMod       bool `json:"user_is_moderator"`
 	Subscribed      bool `json:"user_is_subscriber"`
 	Favorite        bool `json:"user_has_favorited"`
+}
+
+func (p *Subreddit) GetID() string {
+	return p.ID
 }
 
 // PostAndComments is a post and its comments.
