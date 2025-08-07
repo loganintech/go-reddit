@@ -35,6 +35,13 @@ type Message struct {
 	IsComment bool `json:"was_comment"`
 }
 
+func (m *Message) GetFullID() string {
+	return m.FullID
+}
+func (m *Message) GetCreated() *Timestamp {
+	return m.Created
+}
+
 type inboxThing struct {
 	Kind string   `json:"kind"`
 	Data *Message `json:"data"`

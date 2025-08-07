@@ -22,7 +22,7 @@ var itemLimit = 100
 //
 // Because of the 100 post limit imposed by Reddit when fetching posts, some high-traffic
 // streams might drop submissions between API requests, such as when streaming r/all.
-func (s *StreamService) Posts(ctx context.Context, subreddit string, opts ...StreamOpt) (<-chan *Post, <-chan error, func()) {
+func (s *StreamService) Posts(ctx context.Context, subreddit string, opts ...StreamOpt[*Post]) (<-chan *Post, <-chan error, func()) {
 	return doStream(ctx, subreddit, s.getPosts, opts...)
 }
 
@@ -32,7 +32,7 @@ func (s *StreamService) getPosts(ctx context.Context, subreddit string, beforeID
 }
 
 // TODO: Generalize these two functions to have the same body... Maybe when generics is released ;)
-func (s *StreamService) Actions(ctx context.Context, subreddit string, opts ...StreamOpt) (<-chan *ModAction, <-chan error, func()) {
+func (s *StreamService) Actions(ctx context.Context, subreddit string, opts ...StreamOpt[*ModAction]) (<-chan *ModAction, <-chan error, func()) {
 	return doStream(ctx, subreddit, s.getActions, opts...)
 }
 
@@ -43,8 +43,8 @@ func (s *StreamService) getActions(ctx context.Context, subreddit string, before
 
 // TODO: Generalize these two functions to have the same body... Maybe when generics is released ;)
 // InboxUnread returns 3 channels, one for comments, DMs, and errors, in that order, plus a function to close the channel
-func (s *StreamService) InboxUnread(ctx context.Context, opts ...StreamOpt) (<-chan *Message, <-chan *Message, <-chan error, func()) {
-	streamConfig := &streamConfig{
+func (s *StreamService) InboxUnread(ctx context.Context, opts ...StreamOpt[*Message]) (<-chan *Message, <-chan *Message, <-chan error, func()) {
+	streamConfig := &streamConfig[*Message]{
 		Interval:        defaultStreamInterval,
 		DiscardInitial:  false,
 		MaxRequests:     0,
@@ -149,8 +149,8 @@ func (s *StreamService) getInboxUnread(ctx context.Context, beforeID string) ([]
 
 // TODO: Generalize these two functions to have the same body... Maybe when generics is released ;)
 // InboxUnread returns 3 channels, one for comments, DMs, and errors, in that order, plus a function to close the channel
-func (s *StreamService) Reported(ctx context.Context, subreddit string, opts ...StreamOpt) (<-chan *Post, <-chan *Comment, <-chan error, func()) {
-	streamConfig := &streamConfig{
+func (s *StreamService) Reported(ctx context.Context, subreddit string, opts ...StreamOpt[Streamable]) (<-chan *Post, <-chan *Comment, <-chan error, func()) {
+	streamConfig := &streamConfig[Streamable]{
 		Interval:       defaultStreamInterval,
 		DiscardInitial: false,
 		MaxRequests:    0,
@@ -294,7 +294,7 @@ func (s *StreamService) getComments(ctx context.Context, subreddit string, befor
 // Because of the 100 post limit imposed by Reddit when fetching comments, some high-traffic
 // streams might drop submissions between API requests, such as when streaming r/all.
 
-func (s *StreamService) CommentsStream(ctx context.Context, subreddit string, after string, opts ...StreamOpt) (<-chan *Comment, <-chan error, func()) {
+func (s *StreamService) CommentsStream(ctx context.Context, subreddit string, after string, opts ...StreamOpt[*Comment]) (<-chan *Comment, <-chan error, func()) {
 	return doStream(ctx, subreddit, s.getComments, opts...)
 }
 
@@ -303,8 +303,8 @@ type Streamable interface {
 	GetCreated() *Timestamp
 }
 
-func doStream[T Streamable](ctx context.Context, subreddit string, getThing func(context.Context, string, string) ([]T, error), opts ...StreamOpt) (<-chan T, <-chan error, func()) {
-	streamConfig := &streamConfig{
+func doStream[T Streamable](ctx context.Context, subreddit string, getThing func(context.Context, string, string) ([]T, error), opts ...StreamOpt[T]) (<-chan T, <-chan error, func()) {
+	streamConfig := &streamConfig[T]{
 		Interval:        defaultStreamInterval,
 		DiscardInitial:  false,
 		MaxRequests:     0,
@@ -345,7 +345,13 @@ func doStream[T Streamable](ctx context.Context, subreddit string, getThing func
 			case <-ticker.C:
 			}
 			n++
-			items, err := getThing(ctx, subreddit, streamConfig.StartFromFullID)
+			var items []T
+			var err error
+			if streamConfig.GetFunc != nil {
+				items, err = streamConfig.GetFunc(ctx, subreddit, streamConfig.StartFromFullID)
+			} else {
+				items, err = getThing(ctx, subreddit, streamConfig.StartFromFullID)
+			}
 			if err != nil {
 				errsCh <- err
 				if !infinite && n >= streamConfig.MaxRequests {
