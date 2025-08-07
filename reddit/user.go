@@ -32,10 +32,6 @@ type User struct {
 	IsSuspended      bool `json:"is_suspended"`
 }
 
-func (p *User) GetID() string {
-	return p.ID
-}
-
 // UserSummary represents a Reddit user, but
 // contains fewer pieces of information.
 type UserSummary struct {

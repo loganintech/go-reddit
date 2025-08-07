@@ -440,8 +440,11 @@ type Comment struct {
 	NumReports int `json:"num_reports"`
 }
 
-func (p *Comment) GetID() string {
-	return p.ID
+func (p *Comment) GetFullID() string {
+	return p.FullID
+}
+func (p *Comment) GetCreated() *Timestamp {
+	return p.Created
 }
 
 // HasMore determines whether the comment has more replies to load in its reply tree.
@@ -580,8 +583,11 @@ type Post struct {
 	PostHint        string    `json:"post_hint"`
 }
 
-func (p *Post) GetID() string {
-	return p.ID
+func (p *Post) GetFullID() string {
+	return p.FullID
+}
+func (p *Post) GetCreated() *Timestamp {
+	return p.Created
 }
 
 type PostMedia struct {
@@ -640,8 +646,12 @@ type Subreddit struct {
 	Favorite        bool `json:"user_has_favorited"`
 }
 
-func (p *Subreddit) GetID() string {
-	return p.ID
+func (p *Subreddit) GetFullID() string {
+	return p.FullID
+}
+
+func (p *Subreddit) GetCreated() *Timestamp {
+	return p.Created
 }
 
 // PostAndComments is a post and its comments.

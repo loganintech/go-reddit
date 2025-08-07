@@ -45,8 +45,13 @@ type ModAction struct {
 	SubredditID string `json:"sr_id36,omitempty"`
 }
 
-func (p *ModAction) GetID() string {
+func (p *ModAction) GetFullID() string {
+	// These don't use the IDs that other objects do, the ID of this looks like //ModAction_761c6dd8-7354-11f0-9101-e11ad4cc8f51
 	return p.ID
+}
+
+func (p *ModAction) GetCreated() *Timestamp {
+	return p.Created
 }
 
 // ModPermissions are the different permissions moderators have or don't have on a subreddit.

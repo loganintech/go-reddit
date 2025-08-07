@@ -26,8 +26,8 @@ func (s *StreamService) Posts(ctx context.Context, subreddit string, opts ...Str
 	return doStream(ctx, subreddit, s.getPosts, opts...)
 }
 
-func (s *StreamService) getPosts(ctx context.Context, subreddit string) ([]*Post, error) {
-	posts, _, err := s.client.Subreddit.NewPosts(ctx, subreddit, &ListOptions{Limit: itemLimit})
+func (s *StreamService) getPosts(ctx context.Context, subreddit string, beforeID string) ([]*Post, error) {
+	posts, _, err := s.client.Subreddit.NewPosts(ctx, subreddit, &ListOptions{Limit: itemLimit, Before: beforeID})
 	return posts, err
 }
 
@@ -36,8 +36,8 @@ func (s *StreamService) Actions(ctx context.Context, subreddit string, opts ...S
 	return doStream(ctx, subreddit, s.getActions, opts...)
 }
 
-func (s *StreamService) getActions(ctx context.Context, subreddit string) ([]*ModAction, error) {
-	posts, _, err := s.client.Moderation.Actions(ctx, subreddit, &ListModActionOptions{ListOptions: ListOptions{Limit: itemLimit}})
+func (s *StreamService) getActions(ctx context.Context, subreddit string, beforeID string) ([]*ModAction, error) {
+	posts, _, err := s.client.Moderation.Actions(ctx, subreddit, &ListModActionOptions{ListOptions: ListOptions{Limit: itemLimit, Before: beforeID}})
 	return posts, err
 }
 
@@ -45,9 +45,10 @@ func (s *StreamService) getActions(ctx context.Context, subreddit string) ([]*Mo
 // InboxUnread returns 3 channels, one for comments, DMs, and errors, in that order, plus a function to close the channel
 func (s *StreamService) InboxUnread(ctx context.Context, opts ...StreamOpt) (<-chan *Message, <-chan *Message, <-chan error, func()) {
 	streamConfig := &streamConfig{
-		Interval:       defaultStreamInterval,
-		DiscardInitial: false,
-		MaxRequests:    0,
+		Interval:        defaultStreamInterval,
+		DiscardInitial:  false,
+		MaxRequests:     0,
+		StartFromFullID: "",
 	}
 	for _, opt := range opts {
 		opt(streamConfig)
@@ -88,7 +89,9 @@ func (s *StreamService) InboxUnread(ctx context.Context, opts ...StreamOpt) (<-c
 			}
 			n++
 
-			messages, err := s.getInboxUnread(ctx)
+			latest := Timestamp{time.Unix(0, 0)}
+
+			messages, err := s.getInboxUnread(ctx, streamConfig.StartFromFullID)
 			if err != nil {
 				errsCh <- err
 				if !infinite && n >= streamConfig.MaxRequests {
@@ -97,10 +100,10 @@ func (s *StreamService) InboxUnread(ctx context.Context, opts ...StreamOpt) (<-c
 				continue
 			}
 
-			for _, post := range messages {
-				id := post.ID
+			for _, message := range messages {
+				id := message.ID
 
-				// if this post id is already part of the set, it means that it and the ones
+				// if this message id is already part of the set, it means that it and the ones
 				// after it in the list have already been streamed, so break out of the loop
 				if newIDs.Exists(id) || oldIDs.Exists(id) {
 					break
@@ -118,10 +121,15 @@ func (s *StreamService) InboxUnread(ctx context.Context, opts ...StreamOpt) (<-c
 					break
 				}
 
-				if post.IsComment {
-					commentsCh <- post
+				if message.IsComment {
+					commentsCh <- message
 				} else {
-					dmsCh <- post
+					dmsCh <- message
+				}
+
+				if message.Created != nil && message.Created.After(latest.Time) {
+					latest = *message.Created
+					streamConfig.StartFromFullID = message.FullID
 				}
 			}
 
@@ -134,15 +142,14 @@ func (s *StreamService) InboxUnread(ctx context.Context, opts ...StreamOpt) (<-c
 	return commentsCh, dmsCh, errsCh, stop
 }
 
-func (s *StreamService) getInboxUnread(ctx context.Context) ([]*Message, error) {
-	comments, directMessages, _, err := s.client.Message.InboxUnread(ctx, &ListOptions{Limit: itemLimit})
+func (s *StreamService) getInboxUnread(ctx context.Context, beforeID string) ([]*Message, error) {
+	comments, directMessages, _, err := s.client.Message.InboxUnread(ctx, &ListOptions{Limit: itemLimit, Before: beforeID})
 	return append(comments, directMessages...), err
 }
 
 // TODO: Generalize these two functions to have the same body... Maybe when generics is released ;)
 // InboxUnread returns 3 channels, one for comments, DMs, and errors, in that order, plus a function to close the channel
 func (s *StreamService) Reported(ctx context.Context, subreddit string, opts ...StreamOpt) (<-chan *Post, <-chan *Comment, <-chan error, func()) {
-
 	streamConfig := &streamConfig{
 		Interval:       defaultStreamInterval,
 		DiscardInitial: false,
@@ -178,6 +185,8 @@ func (s *StreamService) Reported(ctx context.Context, subreddit string, opts ...
 		var n int
 		infinite := streamConfig.MaxRequests == 0
 
+		latest := Timestamp{time.Unix(0, 0)}
+
 		for {
 			select {
 			case <-ctx.Done():
@@ -187,7 +196,7 @@ func (s *StreamService) Reported(ctx context.Context, subreddit string, opts ...
 			}
 			n++
 
-			posts, comments, err := s.getReported(ctx, subreddit)
+			posts, comments, err := s.getReported(ctx, subreddit, streamConfig.StartFromFullID)
 			if err != nil {
 				errsCh <- err
 				if !infinite && n >= streamConfig.MaxRequests {
@@ -217,6 +226,11 @@ func (s *StreamService) Reported(ctx context.Context, subreddit string, opts ...
 					break
 				}
 
+				if post.Created != nil && post.Created.After(latest.Time) {
+					latest = *post.Created
+					streamConfig.StartFromFullID = post.FullID
+				}
+
 				postsCh <- post
 			}
 
@@ -241,6 +255,11 @@ func (s *StreamService) Reported(ctx context.Context, subreddit string, opts ...
 					break
 				}
 
+				if comment.Created != nil && comment.Created.After(latest.Time) {
+					latest = *comment.Created
+					streamConfig.StartFromFullID = comment.FullID
+				}
+
 				commentsCh <- comment
 			}
 
@@ -253,13 +272,13 @@ func (s *StreamService) Reported(ctx context.Context, subreddit string, opts ...
 	return postsCh, commentsCh, errsCh, stop
 }
 
-func (s *StreamService) getReported(ctx context.Context, subreddit string) ([]*Post, []*Comment, error) {
-	post, comment, _, err := s.client.Moderation.Reported(ctx, subreddit, &ListOptions{Limit: itemLimit})
+func (s *StreamService) getReported(ctx context.Context, subreddit string, beforeID string) ([]*Post, []*Comment, error) {
+	post, comment, _, err := s.client.Moderation.Reported(ctx, subreddit, &ListOptions{Limit: itemLimit, Before: beforeID})
 	return post, comment, err
 }
 
-func (s *StreamService) getComments(ctx context.Context, subreddit string) ([]*Comment, error) {
-	comments, _, err := s.client.Subreddit.NewComments(ctx, subreddit, &ListOptions{Limit: itemLimit})
+func (s *StreamService) getComments(ctx context.Context, subreddit string, beforeID string) ([]*Comment, error) {
+	comments, _, err := s.client.Subreddit.NewComments(ctx, subreddit, &ListOptions{Limit: itemLimit, Before: beforeID})
 	if err != nil {
 		return nil, err
 	}
@@ -275,33 +294,35 @@ func (s *StreamService) getComments(ctx context.Context, subreddit string) ([]*C
 // Because of the 100 post limit imposed by Reddit when fetching comments, some high-traffic
 // streams might drop submissions between API requests, such as when streaming r/all.
 
-func (s *StreamService) CommentsStream(ctx context.Context, subreddit string, opts ...StreamOpt) (<-chan *Comment, <-chan error, func()) {
+func (s *StreamService) CommentsStream(ctx context.Context, subreddit string, after string, opts ...StreamOpt) (<-chan *Comment, <-chan error, func()) {
 	return doStream(ctx, subreddit, s.getComments, opts...)
 }
 
-type HasID interface {
-	GetID() string
+type Streamable interface {
+	GetFullID() string
+	GetCreated() *Timestamp
 }
 
-func doStreamWithCustomIDGet[T any](ctx context.Context, subreddit string, getThing func(context.Context, string) ([]T, error), customIDGet func(T) string, opts ...StreamOpt) (<-chan T, <-chan error, func()) {
+func doStream[T Streamable](ctx context.Context, subreddit string, getThing func(context.Context, string, string) ([]T, error), opts ...StreamOpt) (<-chan T, <-chan error, func()) {
 	streamConfig := &streamConfig{
-		Interval:       defaultStreamInterval,
-		DiscardInitial: false,
-		MaxRequests:    0,
+		Interval:        defaultStreamInterval,
+		DiscardInitial:  false,
+		MaxRequests:     0,
+		StartFromFullID: "",
 	}
 	for _, opt := range opts {
 		opt(streamConfig)
 	}
 
 	ticker := time.NewTicker(streamConfig.Interval)
-	commentsCh := make(chan T)
+	itemCh := make(chan T)
 	errsCh := make(chan error)
 
 	var once sync.Once
 	stop := func() {
 		once.Do(func() {
 			ticker.Stop()
-			close(commentsCh)
+			close(itemCh)
 			close(errsCh)
 		})
 	}
@@ -315,7 +336,7 @@ func doStreamWithCustomIDGet[T any](ctx context.Context, subreddit string, getTh
 		defer stop()
 
 		infinite := streamConfig.MaxRequests == 0
-
+		latest := Timestamp{time.Unix(0, 0)}
 		var n int
 		for {
 			select {
@@ -324,7 +345,7 @@ func doStreamWithCustomIDGet[T any](ctx context.Context, subreddit string, getTh
 			case <-ticker.C:
 			}
 			n++
-			items, err := getThing(ctx, subreddit)
+			items, err := getThing(ctx, subreddit, streamConfig.StartFromFullID)
 			if err != nil {
 				errsCh <- err
 				if !infinite && n >= streamConfig.MaxRequests {
@@ -334,7 +355,7 @@ func doStreamWithCustomIDGet[T any](ctx context.Context, subreddit string, getTh
 			}
 
 			for _, item := range items {
-				id := customIDGet(item)
+				id := item.GetFullID()
 
 				// if this item id is already part of the set, it means that it and the ones
 				// after it in the list have already been streamed, so break out of the loop
@@ -354,19 +375,17 @@ func doStreamWithCustomIDGet[T any](ctx context.Context, subreddit string, getTh
 					break
 				}
 
-				commentsCh <- item
+				if item.GetCreated() != nil && item.GetCreated().After(latest.Time) {
+					latest = *item.GetCreated()
+					streamConfig.StartFromFullID = item.GetFullID()
+				}
+
+				itemCh <- item
 			}
 			if !infinite && n >= streamConfig.MaxRequests {
 				break
 			}
 		}
 	}()
-
-	return commentsCh, errsCh, stop
-}
-
-func doStream[T HasID](ctx context.Context, subreddit string, getThing func(context.Context, string) ([]T, error), opts ...StreamOpt) (<-chan T, <-chan error, func()) {
-	return doStreamWithCustomIDGet(ctx, subreddit, getThing, func(t T) string {
-		return t.GetID()
-	}, opts...)
+	return itemCh, errsCh, stop
 }
