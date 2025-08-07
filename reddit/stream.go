@@ -294,7 +294,7 @@ func (s *StreamService) getComments(ctx context.Context, subreddit string, befor
 // Because of the 100 post limit imposed by Reddit when fetching comments, some high-traffic
 // streams might drop submissions between API requests, such as when streaming r/all.
 
-func (s *StreamService) CommentsStream(ctx context.Context, subreddit string, after string, opts ...StreamOpt[*Comment]) (<-chan *Comment, <-chan error, func()) {
+func (s *StreamService) CommentsStream(ctx context.Context, subreddit string, opts ...StreamOpt[*Comment]) (<-chan *Comment, <-chan error, func()) {
 	return doStream(ctx, subreddit, s.getComments, opts...)
 }
 
