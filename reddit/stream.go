@@ -309,6 +309,7 @@ func doStream[T Streamable](ctx context.Context, subreddit string, getThing func
 		DiscardInitial:  false,
 		MaxRequests:     0,
 		StartFromFullID: "",
+		GetFunc:         nil,
 	}
 	for _, opt := range opts {
 		opt(streamConfig)
@@ -381,7 +382,7 @@ func doStream[T Streamable](ctx context.Context, subreddit string, getThing func
 					break
 				}
 
-				if item.GetCreated() != nil && item.GetCreated().After(latest.Time) {
+				if !streamConfig.UseDumbLogic && item.GetCreated() != nil && item.GetCreated().After(latest.Time) {
 					latest = *item.GetCreated()
 					streamConfig.StartFromFullID = item.GetFullID()
 				}

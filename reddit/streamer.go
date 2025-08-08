@@ -12,6 +12,7 @@ type streamConfig[T Streamable] struct {
 	DiscardInitial bool
 	MaxRequests    int
 
+	UseDumbLogic    bool
 	StartFromFullID string
 	GetFunc         func(context.Context, string, string) ([]T, error)
 }
@@ -53,5 +54,11 @@ func WithStartFromFullID[T Streamable](v string) StreamOpt[T] {
 func WithGetFunc[T Streamable](f func(context.Context, string, string) ([]T, error)) StreamOpt[T] {
 	return func(c *streamConfig[T]) {
 		c.GetFunc = f
+	}
+}
+
+func WithDumbLogic[T Streamable]() StreamOpt[T] {
+	return func(c *streamConfig[T]) {
+		c.UseDumbLogic = true
 	}
 }
