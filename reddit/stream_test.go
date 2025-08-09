@@ -1,6 +1,7 @@
 package reddit
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"testing"
@@ -133,7 +134,7 @@ func TestStreamService_Posts(t *testing.T) {
 		}
 	})
 
-	posts, errs, stop := client.Stream.Posts("testsubreddit", WithStreamInterval(time.Millisecond*10), WithStreamMaxRequests(4))
+	posts, errs, stop := client.Stream.Posts(context.Background(), "testsubreddit", WithStreamInterval[*Post](time.Millisecond*10), WithStreamMaxRequests[*Post](4))
 	defer stop()
 
 	expectedPostIDs := []string{"t3_post1", "t3_post2", "t3_post3", "t3_post4", "t3_post5", "t3_post6", "t3_post7", "t3_post8", "t3_post9", "t3_post10", "t3_post11", "t3_post12"}
@@ -283,7 +284,7 @@ func TestStreamService_Posts_DiscardInitial(t *testing.T) {
 		}
 	})
 
-	posts, errs, stop := client.Stream.Posts("testsubreddit", WithStreamInterval(time.Millisecond*10), WithStreamMaxRequests(4), WithStreamDiscardInitial)
+	posts, errs, stop := client.Stream.Posts(context.Background(), "testsubreddit", WithStreamInterval[*Post](time.Millisecond*10), WithStreamMaxRequests[*Post](4), WithStreamDiscardInitial[*Post]())
 	defer stop()
 
 	expectedPostIDs := []string{"t3_post3", "t3_post4", "t3_post5", "t3_post6", "t3_post7", "t3_post8", "t3_post9", "t3_post10", "t3_post11", "t3_post12"}

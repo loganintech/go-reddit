@@ -44,12 +44,7 @@ func (s *StreamService) getActions(ctx context.Context, subreddit string, before
 // TODO: Generalize these two functions to have the same body... Maybe when generics is released ;)
 // InboxUnread returns 3 channels, one for comments, DMs, and errors, in that order, plus a function to close the channel
 func (s *StreamService) InboxUnread(ctx context.Context, opts ...StreamOpt[*Message]) (<-chan *Message, <-chan *Message, <-chan error, func()) {
-	streamConfig := &streamConfig[*Message]{
-		Interval:        defaultStreamInterval,
-		DiscardInitial:  false,
-		MaxRequests:     0,
-		StartFromFullID: "",
-	}
+	streamConfig := NewStreamConfig[*Message]()
 	for _, opt := range opts {
 		opt(streamConfig)
 	}
@@ -91,7 +86,7 @@ func (s *StreamService) InboxUnread(ctx context.Context, opts ...StreamOpt[*Mess
 
 			latest := Timestamp{time.Unix(0, 0)}
 
-			messages, err := s.getInboxUnread(ctx, streamConfig.StartFromFullID)
+			messages, err := s.getInboxUnread(ctx, streamConfig.HighWaterMark.Pop())
 			if err != nil {
 				errsCh <- err
 				if !infinite && n >= streamConfig.MaxRequests {
@@ -129,7 +124,7 @@ func (s *StreamService) InboxUnread(ctx context.Context, opts ...StreamOpt[*Mess
 
 				if message.Created != nil && message.Created.After(latest.Time) {
 					latest = *message.Created
-					streamConfig.StartFromFullID = message.FullID
+					streamConfig.HighWaterMark.Push(message.FullID)
 				}
 			}
 
@@ -150,11 +145,7 @@ func (s *StreamService) getInboxUnread(ctx context.Context, beforeID string) ([]
 // TODO: Generalize these two functions to have the same body... Maybe when generics is released ;)
 // InboxUnread returns 3 channels, one for comments, DMs, and errors, in that order, plus a function to close the channel
 func (s *StreamService) Reported(ctx context.Context, subreddit string, opts ...StreamOpt[Streamable]) (<-chan *Post, <-chan *Comment, <-chan error, func()) {
-	streamConfig := &streamConfig[Streamable]{
-		Interval:       defaultStreamInterval,
-		DiscardInitial: false,
-		MaxRequests:    0,
-	}
+	streamConfig := NewStreamConfig[Streamable]()
 	for _, opt := range opts {
 		opt(streamConfig)
 	}
@@ -196,7 +187,7 @@ func (s *StreamService) Reported(ctx context.Context, subreddit string, opts ...
 			}
 			n++
 
-			posts, comments, err := s.getReported(ctx, subreddit, streamConfig.StartFromFullID)
+			posts, comments, err := s.getReported(ctx, subreddit, streamConfig.HighWaterMark.Pop())
 			if err != nil {
 				errsCh <- err
 				if !infinite && n >= streamConfig.MaxRequests {
@@ -228,7 +219,7 @@ func (s *StreamService) Reported(ctx context.Context, subreddit string, opts ...
 
 				if post.Created != nil && post.Created.After(latest.Time) {
 					latest = *post.Created
-					streamConfig.StartFromFullID = post.FullID
+					streamConfig.HighWaterMark.Push(post.FullID)
 				}
 
 				postsCh <- post
@@ -257,7 +248,7 @@ func (s *StreamService) Reported(ctx context.Context, subreddit string, opts ...
 
 				if comment.Created != nil && comment.Created.After(latest.Time) {
 					latest = *comment.Created
-					streamConfig.StartFromFullID = comment.FullID
+					streamConfig.HighWaterMark.Push(comment.FullID)
 				}
 
 				commentsCh <- comment
@@ -304,13 +295,7 @@ type Streamable interface {
 }
 
 func doStream[T Streamable](ctx context.Context, subreddit string, getThing func(context.Context, string, string) ([]T, error), opts ...StreamOpt[T]) (<-chan T, <-chan error, func()) {
-	streamConfig := &streamConfig[T]{
-		Interval:        defaultStreamInterval,
-		DiscardInitial:  false,
-		MaxRequests:     0,
-		StartFromFullID: "",
-		GetFunc:         nil,
-	}
+	streamConfig := NewStreamConfig[T]()
 	for _, opt := range opts {
 		opt(streamConfig)
 	}
@@ -349,9 +334,9 @@ func doStream[T Streamable](ctx context.Context, subreddit string, getThing func
 			var items []T
 			var err error
 			if streamConfig.GetFunc != nil {
-				items, err = streamConfig.GetFunc(ctx, subreddit, streamConfig.StartFromFullID)
+				items, err = streamConfig.GetFunc(ctx, subreddit, streamConfig.HighWaterMark.Pop())
 			} else {
-				items, err = getThing(ctx, subreddit, streamConfig.StartFromFullID)
+				items, err = getThing(ctx, subreddit, streamConfig.HighWaterMark.Pop())
 			}
 			if err != nil {
 				errsCh <- err
@@ -384,7 +369,7 @@ func doStream[T Streamable](ctx context.Context, subreddit string, getThing func
 
 				if !streamConfig.UseDumbLogic && item.GetCreated() != nil && item.GetCreated().After(latest.Time) {
 					latest = *item.GetCreated()
-					streamConfig.StartFromFullID = item.GetFullID()
+					streamConfig.HighWaterMark.Push(item.GetFullID())
 				}
 
 				itemCh <- item

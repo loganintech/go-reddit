@@ -12,9 +12,19 @@ type streamConfig[T Streamable] struct {
 	DiscardInitial bool
 	MaxRequests    int
 
-	UseDumbLogic    bool
-	StartFromFullID string
-	GetFunc         func(context.Context, string, string) ([]T, error)
+	UseDumbLogic  bool
+	HighWaterMark HighWaterMark
+	GetFunc       func(context.Context, string, string) ([]T, error)
+}
+
+func NewStreamConfig[T Streamable]() *streamConfig[T] {
+	return &streamConfig[T]{
+		Interval:       defaultStreamInterval,
+		DiscardInitial: false,
+		MaxRequests:    0,
+		UseDumbLogic:   false,
+		HighWaterMark:  NewHighWaterMark(10),
+	}
 }
 
 // StreamOpt is a configuration option to configure a stream.
@@ -31,8 +41,10 @@ func WithStreamInterval[T Streamable](v time.Duration) StreamOpt[T] {
 }
 
 // WithStreamDiscardInitial will discard data from the first fetch for the stream.
-func WithStreamDiscardInitial[T Streamable](c *streamConfig[T]) {
-	c.DiscardInitial = true
+func WithStreamDiscardInitial[T Streamable]() StreamOpt[T] {
+	return func(c *streamConfig[T]) {
+		c.DiscardInitial = true
+	}
 }
 
 // WithStreamMaxRequests sets a limit on the number of times data is fetched for a stream.
@@ -45,9 +57,16 @@ func WithStreamMaxRequests[T Streamable](v int) StreamOpt[T] {
 	}
 }
 
+// WithStartFromFullID gives a basic HighWaterMark struct
 func WithStartFromFullID[T Streamable](v string) StreamOpt[T] {
 	return func(c *streamConfig[T]) {
-		c.StartFromFullID = v
+		c.HighWaterMark = NewHighWaterMark(10, v)
+	}
+}
+
+func WithHighWaterMark[T Streamable](capacity uint32, items ...string) StreamOpt[T] {
+	return func(c *streamConfig[T]) {
+		c.HighWaterMark = NewHighWaterMark(capacity, items...)
 	}
 }
 
